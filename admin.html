@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Admin · Manyiie Fast Food</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body { padding-bottom: 0; background: #f0f0f0; }
+    .admin-header {
+      background: var(--dark);
+      color: white;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .admin-header h1 { font-size: 1.1rem; }
+    .admin-header a { color: var(--yellow); font-size: 0.9rem; }
+    .admin-note {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 16px;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="loginScreen" class="admin-login">
+    <img src="assets/images/logo.jpg" alt="Logo" style="width:72px;height:72px;margin:0 auto 16px;border-radius:50%;display:block">
+    <h2 style="text-align:center;margin-bottom:8px">Owner Dashboard</h2>
+    <p style="text-align:center;font-size:0.85rem;color:#666;margin-bottom:20px">Manyiie Fast Food</p>
+    <div class="form-group">
+      <label for="adminPass">Password</label>
+      <input type="password" id="adminPass" placeholder="Enter admin password" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary btn-block" id="btnLogin">Login</button>
+    <p style="font-size:0.75rem;color:#888;text-align:center;margin-top:16px">Demo password: <code>manyiie2026</code><br>Replace with real auth in production.</p>
+  </div>
+
+  <div id="dashboard" class="hidden">
+    <div class="admin-header">
+      <h1>Manyiie Admin</h1>
+      <div>
+        <a href="index.html">← Site</a>
+        &nbsp;·&nbsp;
+        <a href="#" id="btnLogout">Logout</a>
+      </div>
+    </div>
+
+    <div class="admin-note">
+      <strong>Important:</strong> This demo stores data in the browser (localStorage). For a live business, connect a real backend (Supabase / Firebase / Node) so menu, reviews and settings are secure and shared across devices.
+    </div>
+
+    <nav class="admin-nav" id="adminNav">
+      <button data-panel="menu" class="active">Menu</button>
+      <button data-panel="hours">Hours</button>
+      <button data-panel="delivery">Delivery</button>
+      <button data-panel="reviews">Reviews</button>
+      <button data-panel="promo">Promo</button>
+      <button data-panel="social">Social</button>
+    </nav>
+
+    <!-- MENU PANEL -->
+    <div class="admin-panel active" id="panel-menu">
+      <h2 class="section-title">Menu Items</h2>
+      <button class="btn btn-primary btn-sm mb-2" id="btnAddItem">+ Add Item</button>
+      <div style="overflow-x:auto">
+        <table class="admin-table" id="menuTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Cat</th>
+              <th>Price</th>
+              <th>Avail</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- HOURS -->
+    <div class="admin-panel" id="panel-hours">
+      <h2 class="section-title">Opening Hours</h2>
+      <div class="form-group">
+        <label for="openTime">Open Time</label>
+        <input type="time" id="openTime">
+      </div>
+      <div class="form-group">
+        <label for="closeTime">Close Time</label>
+        <input type="time" id="closeTime">
+      </div>
+      <p style="font-size:0.85rem;color:#666;margin-bottom:12px">Closed days (tap to toggle)</p>
+      <div id="closedDays" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+      <button class="btn btn-primary" id="btnSaveHours">Save Hours</button>
+    </div>
+
+    <!-- DELIVERY -->
+    <div class="admin-panel" id="panel-delivery">
+      <h2 class="section-title">Delivery Areas</h2>
+      <div id="areasEditor"></div>
+      <div class="form-group mt-3">
+        <label for="newArea">Add Area</label>
+        <input type="text" id="newArea" placeholder="e.g. Ga-Rankuwa">
+      </div>
+      <button class="btn btn-primary btn-sm" id="btnAddArea">Add</button>
+      <button class="btn btn-primary mt-3" id="btnSaveAreas">Save Areas</button>
+    </div>
+
+    <!-- REVIEWS -->
+    <div class="admin-panel" id="panel-reviews">
+      <h2 class="section-title">Review Moderation</h2>
+      <div id="reviewsAdmin"></div>
+    </div>
+
+    <!-- PROMO -->
+    <div class="admin-panel" id="panel-promo">
+      <h2 class="section-title">Promotion Banner</h2>
+      <div class="form-group">
+        <label for="promoTitle">Title</label>
+        <input type="text" id="promoTitle">
+      </div>
+      <div class="form-group">
+        <label for="promoText">Text</label>
+        <input type="text" id="promoText">
+      </div>
+      <button class="btn btn-primary" id="btnSavePromo">Save Promo</button>
+    </div>
+
+    <!-- SOCIAL -->
+    <div class="admin-panel" id="panel-social">
+      <h2 class="section-title">Social & Contact</h2>
+      <div class="form-group">
+        <label for="setPhone">Phone</label>
+        <input type="text" id="setPhone">
+      </div>
+      <div class="form-group">
+        <label for="setWhatsapp">WhatsApp (with country code, no +)</label>
+        <input type="text" id="setWhatsapp" placeholder="27699744994">
+      </div>
+      <div class="form-group">
+        <label for="setTiktok">TikTok URL</label>
+        <input type="url" id="setTiktok">
+      </div>
+      <div class="form-group">
+        <label for="setFacebook">Facebook URL</label>
+        <input type="url" id="setFacebook">
+      </div>
+      <button class="btn btn-primary" id="btnSaveSocial">Save</button>
+    </div>
+  </div>
+
+  <!-- ITEM MODAL (simple) -->
+  <div class="overlay" id="itemOverlay"></div>
+  <div class="sheet" id="itemSheet" style="max-height:80vh">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h3 id="itemSheetTitle">Edit Item</h3>
+      <button class="sheet-close" id="itemClose">×</button>
+    </div>
+    <div class="sheet-body">
+      <input type="hidden" id="editId">
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="editName">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="editDesc" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <input type="text" id="editCat" list="catList">
+        <datalist id="catList">
+          <option value="Kotas">
+          <option value="Chips">
+          <option value="Combos">
+          <option value="Wings">
+          <option value="Steak">
+          <option value="Wors">
+          <option value="Salads">
+        </datalist>
+      </div>
+      <div class="form-group">
+        <label>Price (R)</label>
+        <input type="number" id="editPrice" min="0" step="1">
+      </div>
+      <div class="form-group">
+        <label><input type="checkbox" id="editAvail"> Available</label>
+      </div>
+      <div class="form-group">
+        <label><input type="checkbox" id="editFeat"> Featured</label>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnSaveItem">Save Item</button>
+      <button class="btn btn-danger btn-block mt-2" id="btnDeleteItem">Delete</button>
+    </div>
+  </div>
+
+  <script>
+    // Simple client-side auth (demo only)
+    const PASS_HASH = 'manyiie2026'; // In production use proper backend auth
+
+    const loginScreen = document.getElementById('loginScreen');
+    const dashboard = document.getElementById('dashboard');
+
+    function isLoggedIn() {
+      return sessionStorage.getItem('manyiie_admin') === '1';
+    }
+
+    function showDash() {
+      loginScreen.classList.add('hidden');
+      dashboard.classList.remove('hidden');
+      loadAll();
+    }
+
+    if (isLoggedIn()) showDash();
+
+    document.getElementById('btnLogin').addEventListener('click', () => {
+      if (document.getElementById('adminPass').value === PASS_HASH) {
+        sessionStorage.setItem('manyiie_admin', '1');
+        showDash();
+      } else {
+        alert('Wrong password');
+      }
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', (e) => {
+      e.preventDefault();
+      sessionStorage.removeItem('manyiie_admin');
+      location.reload();
+    });
+
+    // Nav
+    document.querySelectorAll('#adminNav button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#adminNav button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+      });
+    });
+
+    // Data helpers (same keys as app.js)
+    function getMenu() {
+      try { return JSON.parse(localStorage.getItem('manyiie_menu')) || []; } catch { return []; }
+    }
+    function setMenu(m) { localStorage.setItem('manyiie_menu', JSON.stringify(m)); }
+    function getSettings() {
+      try { return JSON.parse(localStorage.getItem('manyiie_settings')) || {}; } catch { return {}; }
+    }
+    function setSettings(s) { localStorage.setItem('manyiie_settings', JSON.stringify(s)); }
+    function getReviews() {
+      try { return JSON.parse(localStorage.getItem('manyiie_reviews')) || []; } catch { return []; }
+    }
+    function setReviews(r) { localStorage.setItem('manyiie_reviews', JSON.stringify(r)); }
+
+    // Seed defaults if main site has never been opened
+    function ensureDefaults() {
+      if (!localStorage.getItem('manyiie_menu')) {
+        const defaultMenu = [
+          { id: 'kota-1', category: 'Kotas', name: 'Dikuku Bester', desc: 'Toasted bread + Atchaar/Chakalaka, Cucumber & Lettuce', price: 21, available: true, featured: true },
+          { id: 'kota-2', category: 'Kotas', name: 'Sizwe Nineteen', desc: 'Toasted bread + Special Garlic, Cheese, Egg & Mince', price: 26, available: true, featured: false },
+          { id: 'kota-3', category: 'Kotas', name: 'Tazer Bouy', desc: 'Toasted bread + Special Garlic, Cheese/Egg, Vienna & Mince', price: 28, available: true, featured: false },
+          { id: 'kota-4', category: 'Kotas', name: 'Tsekeleke', desc: 'Toasted bread + Special Garlic, Burger, Cheese & Mince', price: 30, available: true, featured: true },
+          { id: 'kota-5', category: 'Kotas', name: 'Dedrick', desc: 'Toasted bread + Special Garlic, Russian, Cheese/Egg & Mince', price: 32, available: true, featured: false },
+          { id: 'kota-6', category: 'Kotas', name: 'Kopano The Future', desc: 'Toasted bread + Special Garlic, Cheese, Egg, Vienna & Mince', price: 34, available: true, featured: false },
+          { id: 'kota-7', category: 'Kotas', name: 'Black Cat Girl', desc: 'Toasted bread + Special Garlic, Egg, Cheese, Russian, Burger & Mince', price: 37, available: true, featured: true },
+          { id: 'kota-8', category: 'Kotas', name: 'Sosh Vlogs', desc: 'Toasted bread + Special Garlic, Egg, Cheese, Russian, Burger, Vienna & Mince', price: 40, available: true, featured: false },
+          { id: 'kota-9', category: 'Kotas', name: 'Andile Ngidi', desc: 'Toasted bread + Special Garlic, Egg, Cheese, Burger, Wors & Mince', price: 45, available: true, featured: false },
+          { id: 'kota-10', category: 'Kotas', name: 'Manyiie The President', desc: 'Toasted bread + Special Garlic, Egg, Cheese, Burger, Steak, Wors, Russian & Mince', price: 55, available: true, featured: true },
+          { id: 'chips-s', category: 'Chips', name: 'Small Chips', desc: 'Crispy golden chips', price: 20, available: true, featured: false },
+          { id: 'chips-m', category: 'Chips', name: 'Medium Chips', desc: 'Crispy golden chips', price: 30, available: true, featured: true },
+          { id: 'chips-l', category: 'Chips', name: 'Large Chips', desc: 'Big portion of crispy golden chips', price: 50, available: true, featured: false },
+          { id: 'combo-1', category: 'Combos', name: 'Steak, Wors, Chips & Salad', desc: 'Full combo meal', price: 65, available: true, featured: true },
+          { id: 'combo-2', category: 'Combos', name: 'Steak, Chips & Salad', desc: 'Classic combo', price: 55, available: true, featured: false },
+          { id: 'combo-3', category: 'Combos', name: '3 Wings, Chips & Salad', desc: 'Wings combo', price: 45, available: true, featured: false }
+        ];
+        localStorage.setItem('manyiie_menu', JSON.stringify(defaultMenu));
+      }
+      if (!localStorage.getItem('manyiie_settings')) {
+        localStorage.setItem('manyiie_settings', JSON.stringify({
+          phone: '0699744994', whatsapp: '27699744994',
+          openTime: '08:00', closeTime: '20:00', closedDays: [],
+          deliveryAreas: ['Soshanguve', 'Jukulyn', 'Mabopane'],
+          tiktok: 'https://www.tiktok.com/@manyiie.fast.food',
+          facebook: 'https://www.facebook.com/manyiie.the.president',
+          promoTitle: 'Free delivery on orders over R100',
+          promoText: 'Valid in Soshanguve, Jukulyn & Mabopane'
+        }));
+      }
+    }
+
+    function loadAll() {
+      ensureDefaults();
+      renderMenuTable();
+      loadHours();
+      loadAreas();
+      renderReviewsAdmin();
+      loadPromo();
+      loadSocial();
+    }
+
+    // MENU TABLE
+    function renderMenuTable() {
+      const tbody = document.querySelector('#menuTable tbody');
+      const menu = getMenu();
+      if (!menu.length) {
+        tbody.innerHTML = '<tr><td colspan="5">No menu items. Visit the main site once to seed the menu, or add items here.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = menu.map(i => `
+        <tr>
+          <td>${i.name}</td>
+          <td>${i.category}</td>
+          <td>R${i.price}</td>
+          <td>${i.available ? '✓' : '✗'}</td>
+          <td class="admin-actions">
+            <button class="btn btn-sm btn-ghost" data-edit="${i.id}">Edit</button>
+          </td>
+        </tr>
+      `).join('');
+      tbody.querySelectorAll('[data-edit]').forEach(b => {
+        b.addEventListener('click', () => openEdit(b.dataset.edit));
+      });
+    }
+
+    function openEdit(id) {
+      const menu = getMenu();
+      const item = id ? menu.find(i => i.id === id) : null;
+      document.getElementById('editId').value = item ? item.id : '';
+      document.getElementById('editName').value = item ? item.name : '';
+      document.getElementById('editDesc').value = item ? item.desc : '';
+      document.getElementById('editCat').value = item ? item.category : 'Kotas';
+      document.getElementById('editPrice').value = item ? item.price : 30;
+      document.getElementById('editAvail').checked = item ? item.available : true;
+      document.getElementById('editFeat').checked = item ? item.featured : false;
+      document.getElementById('itemSheetTitle').textContent = item ? 'Edit Item' : 'Add Item';
+      document.getElementById('btnDeleteItem').style.display = item ? 'block' : 'none';
+      document.getElementById('itemOverlay').classList.add('open');
+      document.getElementById('itemSheet').classList.add('open');
+    }
+
+    document.getElementById('btnAddItem').addEventListener('click', () => openEdit(null));
+    document.getElementById('itemClose').addEventListener('click', closeItem);
+    document.getElementById('itemOverlay').addEventListener('click', closeItem);
+
+    function closeItem() {
+      document.getElementById('itemOverlay').classList.remove('open');
+      document.getElementById('itemSheet').classList.remove('open');
+    }
+
+    document.getElementById('btnSaveItem').addEventListener('click', () => {
+      const id = document.getElementById('editId').value;
+      const menu = getMenu();
+      const data = {
+        id: id || 'item-' + Date.now(),
+        name: document.getElementById('editName').value.trim(),
+        desc: document.getElementById('editDesc').value.trim(),
+        category: document.getElementById('editCat').value.trim() || 'Kotas',
+        price: Number(document.getElementById('editPrice').value) || 0,
+        available: document.getElementById('editAvail').checked,
+        featured: document.getElementById('editFeat').checked
+      };
+      if (!data.name) { alert('Name required'); return; }
+      if (id) {
+        const idx = menu.findIndex(i => i.id === id);
+        if (idx >= 0) menu[idx] = data;
+      } else {
+        menu.push(data);
+      }
+      setMenu(menu);
+      closeItem();
+      renderMenuTable();
+    });
+
+    document.getElementById('btnDeleteItem').addEventListener('click', () => {
+      if (!confirm('Delete this item?')) return;
+      const id = document.getElementById('editId').value;
+      setMenu(getMenu().filter(i => i.id !== id));
+      closeItem();
+      renderMenuTable();
+    });
+
+    // HOURS
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    function loadHours() {
+      const s = getSettings();
+      document.getElementById('openTime').value = s.openTime || '08:00';
+      document.getElementById('closeTime').value = s.closeTime || '20:00';
+      const closed = s.closedDays || [];
+      const el = document.getElementById('closedDays');
+      el.innerHTML = dayNames.map((d, i) => `
+        <button type="button" class="cat-pill ${closed.includes(i) ? 'active' : ''}" data-day="${i}">${d}</button>
+      `).join('');
+      el.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => b.classList.toggle('active'));
+      });
+    }
+
+    document.getElementById('btnSaveHours').addEventListener('click', () => {
+      const s = getSettings();
+      s.openTime = document.getElementById('openTime').value;
+      s.closeTime = document.getElementById('closeTime').value;
+      s.closedDays = [...document.querySelectorAll('#closedDays button.active')].map(b => Number(b.dataset.day));
+      setSettings(s);
+      alert('Hours saved. Refresh the main site to see changes.');
+    });
+
+    // AREAS
+    function loadAreas() {
+      const s = getSettings();
+      const areas = s.deliveryAreas || [];
+      document.getElementById('areasEditor').innerHTML = areas.map((a, i) => `
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <input type="text" value="${a}" data-idx="${i}" class="area-input" style="flex:1;padding:10px;border:2px solid #eee;border-radius:8px">
+          <button class="btn btn-sm btn-danger" data-rm="${i}">×</button>
+        </div>
+      `).join('');
+      document.querySelectorAll('[data-rm]').forEach(b => {
+        b.addEventListener('click', () => {
+          const s = getSettings();
+          s.deliveryAreas.splice(Number(b.dataset.rm), 1);
+          setSettings(s);
+          loadAreas();
+        });
+      });
+    }
+
+    document.getElementById('btnAddArea').addEventListener('click', () => {
+      const val = document.getElementById('newArea').value.trim();
+      if (!val) return;
+      const s = getSettings();
+      s.deliveryAreas = s.deliveryAreas || [];
+      s.deliveryAreas.push(val);
+      setSettings(s);
+      document.getElementById('newArea').value = '';
+      loadAreas();
+    });
+
+    document.getElementById('btnSaveAreas').addEventListener('click', () => {
+      const s = getSettings();
+      s.deliveryAreas = [...document.querySelectorAll('.area-input')].map(i => i.value.trim()).filter(Boolean);
+      setSettings(s);
+      alert('Delivery areas saved.');
+    });
+
+    // REVIEWS
+    function renderReviewsAdmin() {
+      const revs = getReviews();
+      const el = document.getElementById('reviewsAdmin');
+      if (!revs.length) {
+        el.innerHTML = '<p style="color:#666">No reviews yet.</p>';
+        return;
+      }
+      el.innerHTML = revs.map(r => `
+        <div class="review-card" style="margin-bottom:12px">
+          <div class="review-header">
+            <span class="review-name">${r.name} · ${'★'.repeat(r.rating)}</span>
+            <span style="font-size:0.75rem;color:#888">${r.status}</span>
+          </div>
+          <p class="review-text">${r.text}</p>
+          <div class="admin-actions mt-2">
+            ${r.status !== 'approved' ? `<button class="btn btn-sm btn-success" data-act="approve" data-id="${r.id}">Approve</button>` : ''}
+            ${r.status !== 'rejected' ? `<button class="btn btn-sm btn-ghost" data-act="reject" data-id="${r.id}">Reject</button>` : ''}
+            <button class="btn btn-sm btn-danger" data-act="delete" data-id="${r.id}">Delete</button>
+          </div>
+        </div>
+      `).join('');
+      el.querySelectorAll('[data-act]').forEach(b => {
+        b.addEventListener('click', () => {
+          let revs = getReviews();
+          if (b.dataset.act === 'delete') {
+            revs = revs.filter(r => r.id !== b.dataset.id);
+          } else {
+            const r = revs.find(x => x.id === b.dataset.id);
+            if (r) r.status = b.dataset.act === 'approve' ? 'approved' : 'rejected';
+          }
+          setReviews(revs);
+          renderReviewsAdmin();
+        });
+      });
+    }
+
+    // PROMO
+    function loadPromo() {
+      const s = getSettings();
+      document.getElementById('promoTitle').value = s.promoTitle || '';
+      document.getElementById('promoText').value = s.promoText || '';
+    }
+    document.getElementById('btnSavePromo').addEventListener('click', () => {
+      const s = getSettings();
+      s.promoTitle = document.getElementById('promoTitle').value;
+      s.promoText = document.getElementById('promoText').value;
+      setSettings(s);
+      alert('Promo saved.');
+    });
+
+    // SOCIAL
+    function loadSocial() {
+      const s = getSettings();
+      document.getElementById('setPhone').value = s.phone || '';
+      document.getElementById('setWhatsapp').value = s.whatsapp || '';
+      document.getElementById('setTiktok').value = s.tiktok || '';
+      document.getElementById('setFacebook').value = s.facebook || '';
+    }
+    document.getElementById('btnSaveSocial').addEventListener('click', () => {
+      const s = getSettings();
+      s.phone = document.getElementById('setPhone').value;
+      s.whatsapp = document.getElementById('setWhatsapp').value;
+      s.tiktok = document.getElementById('setTiktok').value;
+      s.facebook = document.getElementById('setFacebook').value;
+      setSettings(s);
+      alert('Contact & social saved.');
+    });
+  </script>
+</body>
+</html>
