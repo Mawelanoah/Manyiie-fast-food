@@ -326,14 +326,21 @@ button, input, select, textarea { font: inherit; }
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.45s ease, transform 0.45s ease;
 }
 
-.food-card.visible {
-  opacity: 1;
-  transform: translateY(0);
+/* Optional entrance animation — never leaves items invisible */
+@media (prefers-reduced-motion: no-preference) {
+  .food-card.animate-in:not(.visible) {
+    opacity: 0.01;
+    transform: translateY(12px);
+  }
+  .food-card.animate-in.visible {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .food-card-img {
@@ -1204,9 +1211,14 @@ button, input, select, textarea { font: inherit; }
 
     <form class="review-form" id="reviewForm">
       <h3 style="font-size:1.05rem;margin-bottom:14px">Leave a Review</h3>
+      <p style="font-size:0.8rem;color:#666;margin-bottom:12px">Only customers who have placed an order can leave a review. Use the same phone number from your order.</p>
       <div class="form-group">
         <label for="revName">Your Name</label>
-        <input type="text" id="revName" required placeholder="Your name" maxlength="40">
+        <input type="text" id="revName" required placeholder="Your name" maxlength="40" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label for="revPhone">Order phone number *</label>
+        <input type="tel" id="revPhone" required placeholder="Same number used when ordering" maxlength="15" autocomplete="tel">
       </div>
       <div class="form-group">
         <label>Rating</label>
@@ -1224,7 +1236,7 @@ button, input, select, textarea { font: inherit; }
         <textarea id="revText" rows="3" required placeholder="Tell us about your experience..." maxlength="400"></textarea>
       </div>
       <button type="submit" class="btn btn-primary btn-block">Submit Review</button>
-      <p style="font-size:0.75rem;color:#888;margin-top:10px;text-align:center">Reviews are moderated before appearing publicly.</p>
+      <p style="font-size:0.75rem;color:#888;margin-top:10px;text-align:center">Verified purchase reviews only. Moderated before appearing publicly.</p>
     </form>
   </section>
 
@@ -1505,7 +1517,7 @@ button, input, select, textarea { font: inherit; }
       return;
     }
     grid.innerHTML = items.map(item => `
-      <article class="food-card" data-id="${item.id}">
+      <article class="food-card animate-in visible" data-id="${item.id}">
         <div class="food-card-img">
           <div class="photo-soon">PHOTO COMING SOON</div>
         </div>
@@ -1520,17 +1532,22 @@ button, input, select, textarea { font: inherit; }
       </article>
     `).join('');
 
-    // Intersection observer for animation
+    // Soft entrance animation (cards already visible as fallback)
     const cards = grid.querySelectorAll('.food-card');
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.classList.add('visible');
-          obs.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.12 });
-    cards.forEach(c => obs.observe(c));
+    if ('IntersectionObserver' in window) {
+      cards.forEach(c => c.classList.remove('visible'));
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.add('visible');
+            obs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.08, rootMargin: '40px' });
+      cards.forEach(c => obs.observe(c));
+      // Safety: force visible after 1.5s so nothing stays hidden
+      setTimeout(() => cards.forEach(c => c.classList.add('visible')), 1500);
+    }
 
     grid.querySelectorAll('.btn-add').forEach(btn => {
       btn.addEventListener('click', () => addToCart(btn.dataset.id, btn));
@@ -1864,12 +1881,36 @@ button, input, select, textarea { font: inherit; }
     const url = `https://wa.me/${settings.whatsapp}?text=${text}`;
     window.open(url, '_blank');
 
+    // Mark this customer as a verified buyer (phone) so they can leave a review
+    try {
+      const phoneKey = normalizePhone(orderDetails.phone);
+      if (phoneKey) {
+        const buyers = load('verifiedBuyers', []);
+        const list = Array.isArray(buyers) ? buyers : [];
+        if (!list.includes(phoneKey)) {
+          list.push(phoneKey);
+          // keep last 100 only
+          save('verifiedBuyers', list.slice(-100));
+        }
+        sessionStorage.setItem('manyiie_last_order_phone', phoneKey);
+      }
+    } catch (e) { /* ignore */ }
+
     // Clear cart after sending
     cart = [];
     save('cart', cart);
     updateCartBar();
     closeAllSheets();
     toast('Order sent via WhatsApp!');
+  }
+
+  function normalizePhone(p) {
+    if (!p) return '';
+    // Keep digits only; SA numbers often 0xx or 27xx
+    let d = String(p).replace(/\D/g, '');
+    if (d.startsWith('27') && d.length >= 11) d = '0' + d.slice(2);
+    if (d.length < 9) return '';
+    return d;
   }
 
   // ========== REVIEWS ==========
@@ -1898,21 +1939,36 @@ button, input, select, textarea { font: inherit; }
       return;
     }
     const name = sanitizeText(document.getElementById('revName').value, 40);
+    const phoneRaw = document.getElementById('revPhone')?.value || '';
+    const phone = normalizePhone(phoneRaw);
     const text = sanitizeText(document.getElementById('revText').value, 400);
     let rating = Number(document.getElementById('revRating').value);
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) rating = 0;
-    if (!name || !text || !rating) {
-      toast('Please complete the review');
+    if (!name || !text || !rating || !phone) {
+      toast('Please complete all fields including order phone');
       return;
     }
+
+    // Only customers who placed an order (same device or matching phone) can review
+    const buyers = load('verifiedBuyers', []);
+    const buyerList = Array.isArray(buyers) ? buyers : [];
+    const lastPhone = sessionStorage.getItem('manyiie_last_order_phone') || '';
+    const isVerified = buyerList.includes(phone) || lastPhone === phone;
+    if (!isVerified) {
+      toast('Only customers who ordered can leave a review. Use the phone number from your order.');
+      return;
+    }
+
     // Cap stored reviews to prevent localStorage abuse
     if (reviews.length > 200) reviews = reviews.slice(-150);
     reviews.push({
       id: 'r' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
       name: name,
+      phone: phone,
       text: text,
       rating: rating,
       status: 'pending',
+      verifiedPurchase: true,
       date: new Date().toISOString()
     });
     save('reviews', reviews);
