@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
   <meta name="theme-color" content="#E30613">
   <meta name="description" content="Manyiie Fast Food – Number 1 trending sphatlho (kota) in Soshanguve. Order delicious kotas, chips, steak & more for delivery or collection.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none';">
@@ -1386,15 +1388,6 @@ button, input, select, textarea { font: inherit; }
     promoText: 'Valid in Soshanguve, Jukulyn & Mabopane'
   };
 
-  // ========== STATE ==========
-  let menu = load('menu', DEFAULT_MENU);
-  let settings = load('settings', DEFAULT_SETTINGS);
-  let reviews = load('reviews', []); // {id, name, rating, text, status: pending|approved|rejected, date}
-  let cart = load('cart', []);
-  let currentCategory = 'All';
-  let orderType = null; // delivery | collection
-  let orderDetails = {};
-
   // ========== HELPERS ==========
   // Safe JSON load — rejects non-array/non-object and prototype pollution keys
   function load(key, fallback) {
@@ -1409,6 +1402,33 @@ button, input, select, textarea { font: inherit; }
       return structuredClone(fallback);
     }
   }
+
+  function isValidMenu(m) {
+    return Array.isArray(m) && m.length > 0 && m.every(function (i) {
+      return i && typeof i.name === 'string' && i.name.length > 0 && typeof i.price === 'number' && i.price >= 0;
+    });
+  }
+
+  // ========== STATE ==========
+  // If phone has empty/corrupt saved menu, always fall back to real menu
+  let menu = load('menu', DEFAULT_MENU);
+  if (!isValidMenu(menu)) {
+    menu = structuredClone(DEFAULT_MENU);
+    try { localStorage.removeItem('manyiie_menu'); } catch (e) {}
+  }
+  let settings = load('settings', DEFAULT_SETTINGS);
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+    settings = structuredClone(DEFAULT_SETTINGS);
+  }
+  // Ensure required settings keys exist
+  settings = Object.assign({}, DEFAULT_SETTINGS, settings);
+  let reviews = load('reviews', []);
+  if (!Array.isArray(reviews)) reviews = [];
+  let cart = load('cart', []);
+  if (!Array.isArray(cart)) cart = [];
+  let currentCategory = 'All';
+  let orderType = null; // delivery | collection
+  let orderDetails = {};
 
   function hasDangerousKeys(obj, depth) {
     if (depth > 6) return true;
